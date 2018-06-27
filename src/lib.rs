@@ -4,6 +4,9 @@
 //!
 //! [`Zom`]: enum.Zom.html
 
+#[cfg(test)]
+mod tests;
+
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 use std::iter::FromIterator;
@@ -53,6 +56,15 @@ impl<T> Zom<T> {
         match self {
             Zom::Many(many) => many,
             _ => unreachable!(),
+        }
+    }
+
+    /// Removes all elements from the `Zom`, without deallocating any memory.
+    pub fn clear(&mut self) {
+        match self {
+            Zom::Many(many) => many.clear(),
+            this @ Zom::One(_) => *this = Zom::Zero,
+            Zom::Zero => (),
         }
     }
 
@@ -321,6 +333,35 @@ impl<T> FromIterator<T> for Zom<T> {
         many.push(second);
         many.extend(iter);
         Zom::Many(many)
+    }
+}
+
+impl<T> Extend<T> for Zom<T> {
+    #[inline]
+    fn extend<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = T>,
+    {
+        let mut iter = iter.into_iter();
+        if let Some(first) = iter.next() {
+            let this = match self.take() {
+                Zom::Zero => Zom::One(first),
+                Zom::One(one) => {
+                    let mut many = Vec::with_capacity(iter.size_hint().0 + 2);
+                    many.push(one);
+                    many.push(first);
+                    many.extend(iter);
+                    Zom::Many(many)
+                }
+                Zom::Many(mut many) => {
+                    many.reserve(iter.size_hint().0 + 2);
+                    many.push(first);
+                    many.extend(iter);
+                    Zom::Many(many)
+                }
+            };
+            *self = this;
+        }
     }
 }
 
