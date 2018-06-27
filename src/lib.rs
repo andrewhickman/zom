@@ -138,7 +138,7 @@ impl<T> Deref for Zom<T> {
     fn deref(&self) -> &Self::Target {
         match *self {
             Zom::Zero => &[],
-            Zom::One(ref one) => slice::from_ref(one),
+            Zom::One(ref one) => slice_from_ref(one),
             Zom::Many(ref many) => many,
         }
     }
@@ -149,7 +149,7 @@ impl<T> DerefMut for Zom<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         match *self {
             Zom::Zero => &mut [],
-            Zom::One(ref mut one) => slice::from_mut(one),
+            Zom::One(ref mut one) => slice_from_mut(one),
             Zom::Many(ref mut many) => many,
         }
     }
@@ -226,7 +226,7 @@ impl<T> IntoIter<T> {
     pub fn as_slice(&self) -> &[T] {
         match self.inner {
             IntoIterInner::Zero => &[],
-            IntoIterInner::One(ref one) => slice::from_ref(one),
+            IntoIterInner::One(ref one) => slice_from_ref(one),
             IntoIterInner::Many(ref many) => many.as_slice(),
         }
     }
@@ -235,7 +235,7 @@ impl<T> IntoIter<T> {
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         match self.inner {
             IntoIterInner::Zero => &mut [],
-            IntoIterInner::One(ref mut one) => slice::from_mut(one),
+            IntoIterInner::One(ref mut one) => slice_from_mut(one),
             IntoIterInner::Many(ref mut many) => many.as_mut_slice(),
         }
     }
@@ -336,4 +336,14 @@ impl<T> From<Vec<T>> for Zom<T> {
     fn from(many: Vec<T>) -> Self {
         Zom::Many(many)
     }
+}
+
+// TODO: replace this with slice::from_ref when it is stable.
+fn slice_from_ref<T>(s: &T) -> &[T] {
+    unsafe { slice::from_raw_parts(s, 1) }
+}
+
+// TODO: replace this with slice::from_mut when it is stable.
+fn slice_from_mut<T>(s: &mut T) -> &mut [T] {
+    unsafe { slice::from_raw_parts_mut(s, 1) }
 }
